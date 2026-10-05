@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather App — Tugas Rutin 5</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top: #2E6FA8;
+    --sky-bottom: #7FBEE0;
+    --card-bg: rgba(255,255,255,0.14);
+    --card-border: rgba(255,255,255,0.28);
+    --text: #FFFFFF;
+    --text-dim: rgba(255,255,255,0.75);
+    --accent: #FFC65C;
+    --danger-bg: rgba(255,90,90,0.18);
+    --danger-border: rgba(255,120,120,0.55);
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: linear-gradient(160deg, var(--sky-top), var(--sky-bottom));
+    padding: 1.5rem 1rem 3rem;
+  }
+  h1, h2, .brand-font{ font-family: 'Poppins', sans-serif; }
+
+  .wrap{ max-width: 480px; margin: 0 auto; }
+
+  header{ text-align: center; margin-bottom: 1.5rem; }
+  header h1{ font-size: 1.5rem; margin: 0 0 0.25rem; }
+  header p{ margin: 0; color: var(--text-dim); font-size: 0.9rem; }
+
+  /* API key box */
+  .apikey-box{
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+  .apikey-box label{ display:block; margin-bottom: 0.4rem; color: var(--text-dim); }
+  .apikey-row{ display: flex; gap: 0.5rem; }
+  .apikey-row input{ flex: 1; min-width: 0; }
+  .apikey-box a{ color: var(--accent); }
+  .apikey-saved{ font-size: 0.78rem; color: #B9F0B9; margin-top: 0.4rem; display:none; }
+
+  input[type="text"], input[type="password"]{
+    width: 100%;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    background: rgba(255,255,255,0.12);
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  input::placeholder{ color: rgba(255,255,255,0.55); }
+
+  form.search-form{ display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+  form.search-form input{ flex: 1; min-width: 0; }
+
+  button{
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .btn-primary{
+    background: var(--accent);
+    color: #2A2000;
+    padding: 0.65rem 1.1rem;
+  }
+  .btn-ghost{
+    background: rgba(255,255,255,0.15);
+    color: var(--text);
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  .btn-ghost.active{ background: var(--accent); color:#2A2000; }
+
+  .unit-toggle{ display:flex; gap:0.4rem; justify-content:center; margin-bottom: 1.25rem; }
+
+  /* History chips */
+  .history{ display:flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.25rem; }
+  .history-chip{
+    background: rgba(255,255,255,0.15);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .history-chip:hover{ background: rgba(255,255,255,0.28); }
+
+  /* Loading */
+  .loading{ display:none; text-align:center; padding: 2rem 0; color: var(--text-dim); }
+  .loading.show{ display:block; }
+  .spinner{
+    width: 34px; height: 34px; margin: 0 auto 0.6rem;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* Error */
+  .error-box{
+    display:none;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.88rem;
+  }
+  .error-box.show{ display:block; }
+
+  /* Main weather card */
+  .weather-card{
+    display:none;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    padding: 1.5rem;
+    text-align: center;
+    backdrop-filter: blur(6px);
+    margin-bottom: 1.25rem;
+  }
+  .weather-card.show{ display:block; }
+  .weather-card .kota{ font-size: 1.15rem; font-weight: 600; margin-bottom: 0.1rem; }
+  .weather-card .tanggal{ font-size: 0.78rem; color: var(--text-dim); margin-bottom: 0.5rem; }
+  .weather-card img{ width: 90px; height: 90px; margin: -0.5rem auto -0.25rem; display:block; }
+  .weather-card .suhu{ font-size: 2.6rem; font-weight: 700; font-family:'Poppins',sans-serif; }
+  .weather-card .deskripsi{ text-transform: capitalize; color: var(--text-dim); margin-bottom: 0.9rem; }
+  .weather-card .meta-row{
+    display:flex; justify-content:center; gap: 1.5rem;
+    border-top: 1px solid var(--card-border);
+    padding-top: 0.8rem; font-size: 0.82rem; color: var(--text-dim);
+  }
+  .weather-card .meta-row b{ color: var(--text); display:block; font-size: 0.95rem; }
+
+  /* Forecast */
+  .forecast-title{ font-size: 0.95rem; margin: 0 0 0.6rem; color: var(--text-dim); }
+  .forecast-row{
+    display:none;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+  }
+  .forecast-row.show{ display:grid; }
+  .forecast-item{
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.3rem;
+    text-align: center;
+    font-size: 0.72rem;
+  }
+  .forecast-item img{ width: 34px; height: 34px; }
+  .forecast-item .f-suhu{ font-weight: 600; font-size: 0.8rem; }
+
+  @media (max-width: 400px){
+    .forecast-row{ grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>🌤️ Weather App</h1>
+    <p>Tugas Rutin 5 — Cek cuaca kota mana saja secara real-time</p>
+  </header>
+
+  <!-- API Key -->
+  <div class="apikey-box">
+    <label for="apiKeyInput">API Key OpenWeatherMap (gratis di <a href="https://openweathermap.org/api" target="_blank" rel="noopener">openweathermap.org</a>)</label>
+    <div class="apikey-row">
+      <input type="password" id="apiKeyInput" placeholder="Tempel API key kamu di sini...">
+      <button class="btn-primary" id="saveKeyBtn" type="button">Simpan</button>
+    </div>
+    <div class="apikey-saved" id="apiKeySaved">✓ API key tersimpan di browser ini</div>
+  </div>
+
+  <!-- Search -->
+  <form class="search-form" id="searchForm">
+    <input type="text" id="cityInput" placeholder="Cari nama kota, misal: Medan" autocomplete="off">
+    <button class="btn-primary" type="submit">Cari</button>
+  </form>
+
+  <div class="unit-toggle">
+    <button class="btn-ghost active" id="btnCelsius" type="button">°C</button>
+    <button class="btn-ghost" id="btnFahrenheit" type="button">°F</button>
+  </div>
+
+  <!-- History -->
+  <div class="history" id="historyBox"></div>
+
+  <!-- Loading -->
+  <div class="loading" id="loadingBox">
+    <div class="spinner"></div>
+    Mengambil data cuaca...
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Weather result -->
+  <div class="weather-card" id="weatherCard">
+    <div class="kota" id="kota"></div>
+    <div class="tanggal" id="tanggal"></div>
+    <img id="ikon" src="" alt="Ikon cuaca">
+    <div class="suhu" id="suhu"></div>
+    <div class="deskripsi" id="deskripsi"></div>
+    <div class="meta-row">
+      <div>Kelembaban<br><b id="kelembaban"></b></div>
+      <div>Terasa seperti<br><b id="terasaSeperti"></b></div>
+      <div>Angin<br><b id="angin"></b></div>
+    </div>
+  </div>
+
+  <h2 class="forecast-title" id="forecastTitle" style="display:none;">Prakiraan 5 Hari</h2>
+  <div class="forecast-row" id="forecastRow"></div>
+</div>
+
+<script>
+  // ===== Element references =====
+  const apiKeyInput   = document.querySelector('#apiKeyInput');
+  const saveKeyBtn    = document.querySelector('#saveKeyBtn');
+  const apiKeySaved   = document.querySelector('#apiKeySaved');
+  const searchForm    = document.querySelector('#searchForm');
+  const cityInput     = document.querySelector('#cityInput');
+  const historyBox    = document.querySelector('#historyBox');
+  const loadingBox    = document.querySelector('#loadingBox');
+  const errorBox      = document.querySelector('#errorBox');
+  const weatherCard   = document.querySelector('#weatherCard');
+  const forecastRow   = document.querySelector('#forecastRow');
+  const forecastTitle = document.querySelector('#forecastTitle');
+  const btnCelsius    = document.querySelector('#btnCelsius');
+  const btnFahrenheit = document.querySelector('#btnFahrenheit');
+
+  // ===== State =====
+  let currentUnit = 'C';          // 'C' or 'F'
+  let lastWeatherData = null;     // simpan hasil fetch terakhir (dalam Celsius) buat konversi toggle
+  let lastForecastData = null;
+
+  // ===== API key handling (localStorage) =====
+  const savedKey = localStorage.getItem('owm_api_key');
+  if (savedKey) {
+    apiKeyInput.value = savedKey;
+    apiKeySaved.style.display = 'block';
+  }
+
+  saveKeyBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (!key) return;
+    localStorage.setItem('owm_api_key', key);
+    apiKeySaved.style.display = 'block';
+  });
+
+  // ===== Search history (localStorage) — bonus =====
+  const HISTORY_KEY = 'owm_search_history';
+  const getHistory = () => JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+
+  const saveToHistory = (city) => {
+    let history = getHistory().filter(c => c.toLowerCase() !== city.toLowerCase());
+    history.unshift(city);
+    history = history.slice(0, 6); // simpan maksimal 6 kota terakhir
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    renderHistory();
+  };
+
+  // Array method: map() dipakai di sini untuk merender daftar riwayat
+  const renderHistory = () => {
+    const history = getHistory();
+    historyBox.innerHTML = history
+      .map(city => `<button class="history-chip" data-city="${city}">${city}</button>`)
+      .join('');
+  };
+
+  historyBox.addEventListener('click', (e) => {
+    const chip = e.target.closest('.history-chip');
+    if (!chip) return;
+    const city = chip.dataset.city;
+    cityInput.value = city;
+    getWeather(city);
+  });
+
+  // ===== UI state helpers =====
+  const showLoading = () => { loadingBox.classList.add('show'); };
+  const hideLoading = () => { loadingBox.classList.remove('show'); };
+
+  const showError = (message) => {
+    errorBox.textContent = message;
+    errorBox.classList.add('show');
+    weatherCard.classList.remove('show');
+    forecastRow.classList.remove('show');
+    forecastTitle.style.display = 'none';
+  };
+
+  const clearError = () => { errorBox.classList.remove('show'); };
+
+  // ===== Unit conversion (tidak perlu fetch ulang saat toggle) =====
+  const celsiusToFahrenheit = (c) => Math.round((c * 9 / 5 + 32) * 10) / 10;
+
+  const formatTemp = (celsiusValue) => {
+    if (currentUnit === 'C') return `${Math.round(celsiusValue)}°C`;
+    return `${Math.round(celsiusToFahrenheit(celsiusValue))}°F`;
+  };
+
+  // ===== Render weather utama =====
+  const renderWeather = (data) => {
+    document.querySelector('#kota').textContent = `${data.name}, ${data.sys.country}`;
+    document.querySelector('#tanggal').textContent = new Date().toLocaleDateString('id-ID', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+    document.querySelector('#ikon').src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+    document.querySelector('#suhu').textContent = formatTemp(data.main.temp);
+    document.querySelector('#deskripsi').textContent = data.weather[0].description;
+    document.querySelector('#kelembaban').textContent = `${data.main.humidity}%`;
+    document.querySelector('#terasaSeperti').textContent = formatTemp(data.main.feels_like);
+    document.querySelector('#angin').textContent = `${data.wind.speed} m/s`;
+    weatherCard.classList.add('show');
+  };
+
+  // ===== Render forecast 5 hari (bonus) =====
+  const renderForecast = (list) => {
+    // Array method: filter() untuk ambil 1 data per hari (jam 12 siang)
+    const dailyData = list.filter(item => item.dt_txt.includes('12:00:00'));
+
+    forecastRow.innerHTML = dailyData
+      .map(item => {
+        const hari = new Date(item.dt * 1000).toLocaleDateString('id-ID', { weekday: 'short' });
+        return `
+          <div class="forecast-item">
+            <div>${hari}</div>
+            <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" alt="${item.weather[0].description}">
+            <div class="f-suhu">${formatTemp(item.main.temp)}</div>
+          </div>`;
+      })
+      .join('');
+
+    if (dailyData.length > 0) {
+      forecastRow.classList.add('show');
+      forecastTitle.style.display = 'block';
+    }
+  };
+
+  // ===== Fetch data cuaca (async/await + error handling) =====
+  const getWeather = async (city) => {
+    const apiKey = localStorage.getItem('owm_api_key');
+    if (!apiKey) {
+      showError('Masukkan API key OpenWeatherMap dulu di kolom atas, lalu klik Simpan.');
+      return;
+    }
+
+    clearError();
+    weatherCard.classList.remove('show');
+    forecastRow.classList.remove('show');
+    forecastTitle.style.display = 'none';
+    showLoading();
+
+    try {
+      const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric&lang=id`;
+      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric&lang=id`;
+
+      const weatherRes = await fetch(weatherUrl);
+
+      if (weatherRes.status === 404) {
+        throw new Error(`Kota "${city}" tidak ditemukan. Coba periksa ejaannya.`);
+      }
+      if (weatherRes.status === 401) {
+        throw new Error('API key tidak valid. Periksa kembali key yang kamu masukkan.');
+      }
+      if (!weatherRes.ok) {
+        throw new Error('Terjadi kesalahan saat mengambil data cuaca. Coba lagi nanti.');
+      }
+
+      const weatherData = await weatherRes.json();
+      lastWeatherData = weatherData;
+      renderWeather(weatherData);
+      saveToHistory(weatherData.name);
+
+      // Forecast bonus — kalau gagal, weather utama tetap tampil
+      try {
+        const forecastRes = await fetch(forecastUrl);
+        if (forecastRes.ok) {
+          const forecastData = await forecastRes.json();
+          lastForecastData = forecastData.list;
+          renderForecast(forecastData.list);
+        }
+      } catch (forecastErr) {
+        console.warn('Forecast gagal dimuat:', forecastErr.message);
+      }
+
+    } catch (err) {
+      // Menangani error jaringan (offline / fetch gagal total) maupun error yang kita lempar sendiri
+      if (err instanceof TypeError) {
+        showError('Tidak bisa terhubung ke internet. Periksa koneksimu dan coba lagi.');
+      } else {
+        showError(err.message);
+      }
+    } finally {
+      hideLoading();
+    }
+  };
+
+  // ===== Event listeners =====
+  searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const city = cityInput.value.trim();
+    if (city) getWeather(city);
+  });
+
+  btnCelsius.addEventListener('click', () => {
+    currentUnit = 'C';
+    btnCelsius.classList.add('active');
+    btnFahrenheit.classList.remove('active');
+    if (lastWeatherData) renderWeather(lastWeatherData);
+    if (lastForecastData) renderForecast(lastForecastData);
+  });
+
+  btnFahrenheit.addEventListener('click', () => {
+    currentUnit = 'F';
+    btnFahrenheit.classList.add('active');
+    btnCelsius.classList.remove('active');
+    if (lastWeatherData) renderWeather(lastWeatherData);
+    if (lastForecastData) renderForecast(lastForecastData);
+  });
+
+  // Render riwayat saat halaman dibuka
+  renderHistory();
+</script>
+
+</body>
+</html>
